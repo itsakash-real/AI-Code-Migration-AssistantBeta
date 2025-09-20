@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { cookies } from "next/headers";
 
-
 // Basic request payload typing
 interface MigrateRequest {
   sourceLanguage: string;
@@ -45,29 +44,30 @@ export async function POST(req: Request) {
     let usageDate = todayStr();
 
     try {
-      const jar = cookies();  // No await
-      const raw = jar.get(cookieName)?.value; // Use directly
-  if (raw) {
-    const parsed = JSON.parse(raw) as { count: number; date: string };
-    if (parsed.date === todayStr()) {
-      usageCount = parsed.count || 0;
-      usageDate = parsed.date;
-    }
+      const jar = await cookies(); // <-- FIX: await here
+      const raw = jar.get(cookieName)?.value;
+      if (raw) {
+        const parsed = JSON.parse(raw) as { count: number; date: string };
+        if (parsed.date === todayStr()) {
+          usageCount = parsed.count || 0;
+          usageDate = parsed.date;
+        }
       }
     } catch (err) {
       console.error("Error reading cookies:", err);
     }
 
     // Increment usage and set cookie
-usageCount += 1;
-const remaining = Math.max(0, 5 - usageCount);
+    usageCount += 1;
+    const remaining = Math.max(0, 5 - usageCount);
 
-  cookies().set(cookieName, JSON.stringify({ count: usageCount, date: usageDate }), {
-  httpOnly: true,
-  sameSite: "lax",
-  path: "/",
-  maxAge: 60 * 60 * 24, // 1 day
-});
+    const jar = await cookies(); // Use again for writing
+    jar.set(cookieName, JSON.stringify({ count: usageCount, date: usageDate }), {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24, // 1 day
+    });
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const system = `You are an expert AI Code Migration Assistant. You translate source code from one language/framework to another while preserving functionality, behavior, and performance. You follow the best practices and idioms of the target ecosystem. Avoid pseudo code. Where APIs don't have direct equivalents, provide practical alternatives. Maintain edge cases, error handling, types, and comments where helpful.`;

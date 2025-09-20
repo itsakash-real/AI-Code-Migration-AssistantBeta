@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { cookies as nextCookies } from "next/headers";
+import { cookies } from "next/headers";
 
 
 // Basic request payload typing
@@ -45,8 +45,8 @@ export async function POST(req: Request) {
     let usageDate = todayStr();
 
     try {
-      const cookiesObj = nextCookies(); // No await
-  const raw = cookiesObj.get(cookieName)?.value; // Use directly
+      const jar = cookies();  // No await
+      const raw = jar.get(cookieName)?.value; // Use directly
   if (raw) {
     const parsed = JSON.parse(raw) as { count: number; date: string };
     if (parsed.date === todayStr()) {
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
 usageCount += 1;
 const remaining = Math.max(0, 5 - usageCount);
 
-nextCookies().set(cookieName, JSON.stringify({ count: usageCount, date: usageDate }), {
+  cookies().set(cookieName, JSON.stringify({ count: usageCount, date: usageDate }), {
   httpOnly: true,
   sameSite: "lax",
   path: "/",
